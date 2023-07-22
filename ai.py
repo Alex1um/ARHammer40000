@@ -213,6 +213,6 @@ def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetecto
     return corners, ids, (img_width, img_height)
 
 
-def grid_point_to_image_point(grid_point: int):
+def grid_point_to_image_point(grid_point: tuple[int, int]):
     unit_x, unit_y = RESOLUTION[0] / GRID_WIDTH, RESOLUTION[1] / GRID_HEIGHT
-    return grid_point[0] * unit_x + unit_x / 2, grid_point[1] * unit_y + unit_y / 2
+    return round(grid_point[0] * unit_x + unit_x / 2), round(grid_point[1] * unit_y + unit_y / 2)

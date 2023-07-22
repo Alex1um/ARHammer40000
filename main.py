@@ -218,8 +218,10 @@ while video.isOpened():
     ### START OF INTERFACE CONTROL SECTION
     if next_grid_point:
         # show target in aim-like style
-        cv2.circle(img, grid_point_to_image_point(next_grid_point), 3, (0, 255, 0), -1)
-        cv2.circle(img, grid_point_to_image_point(next_grid_point), 12, (0, 255, 0), 2)
+
+        next_img_point = grid_point_to_image_point(next_grid_point)
+        cv2.circle(img, next_img_point, 3, (0, 255, 0), -1)
+        cv2.circle(img, next_img_point, 12, (0, 255, 0), 2)
 
     if robot_marker is not None:
         robot_x, robot_y = (robot_marker[1][0] + robot_marker[1][1] + robot_marker[1][2] + robot_marker[1][3]) / 4.0
