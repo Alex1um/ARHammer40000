@@ -113,9 +113,9 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
 # %%
 def clickEvents(event, x, y, flags, param):
     corners, robot = param
-    global active, point, is_way_found
+    global active, point, is_way_found, robot_grid_point
 
-    if event == cv2.EVENT_LBUTTONDBLCLK:
+    if event == cv2.EVENT_LBUTTONDOWN:
         if mpl.path.Path(corners).contains_point((x, y)):
             active = True
             robot.stop()
@@ -125,14 +125,12 @@ def clickEvents(event, x, y, flags, param):
             robot.stop()
             robot.led_off()
     else:
-        if active and event == cv2.EVENT_LBUTTONDOWN:
-            robot.stop()
-
-            point = (x, y)
-            is_way_found = False
-
         if active and event == cv2.EVENT_RBUTTONDOWN:
             robot.stop()
+            new_point = approximate_point_to_grid(*RESOLUTION, GRID_WIDTH, GRID_HEIGHT, x, y)
+            if point != new_point and robot_grid_point != new_point:
+                point = new_point
+            is_way_found = False
 
 
 # %% md
@@ -189,6 +187,7 @@ bea = 45  # big enough angle, when start reaiming
 point_changed = True
 
 point: tuple[int, int] | None = None
+robot_grid_point: tuple[int, int] | None = None
 # %%
 video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
 M = get_perspective_matrix(video, arucoDetector, corners_ids)
@@ -223,43 +222,43 @@ while video.isOpened():
 
     if robot_marker is not None:
         robot_x, robot_y = (robot_marker[1][0] + robot_marker[1][1] + robot_marker[1][2] + robot_marker[1][3]) / 4.0
+        robot_grid_point = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
         corners = robot_marker[1]  # corners are needed for setMouseCallBack
 
         if active:
 
             img = aruco_display(robot_marker, img)  # show frames
-            start = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
-            # end = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, *point)
 
-            if point and not is_way_found:
-                # start = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
-                end = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, *point)
+            if point:
+                if not is_way_found:
 
-                frozen_part = frozen_lake
-                frozen_part[start[0], start[1]] = 'S'
-                frozen_part[end[0], end[1]] = 'G'
-                env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
+                    frozen_part = frozen_lake
+                    frozen_part[robot_grid_point[0], robot_grid_point[1]] = 'S'
+                    frozen_part[point[0], point[1]] = 'G'
+                    env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
 
-                state_space = env.observation_space.n
-                print("There are ", state_space, " possible states")
+                    state_space = env.observation_space.n
+                    print("There are ", state_space, " possible states")
 
-                action_space = env.action_space.n
-                print("There are ", action_space, " possible actions")
-                Qtable_frozenlake = get_policy(state_space, action_space, env)
-                state, info = env.reset()
-                next_grid_point = None
-                is_way_found = True
-
+                    action_space = env.action_space.n
+                    print("There are ", action_space, " possible actions")
+                    Qtable_frozenlake = get_policy(state_space, action_space, env)
+                    state, info = env.reset()
+                    next_grid_point = None
+                    is_way_found = True
 
                 if not next_grid_point:
                     action = greedy_policy(Qtable_frozenlake, state) # 0: LEFT, 1: DOWN, 2: RIGHT, 3: UP
                     # Take the action (a) and observe the outcome state(s') and reward (r)
                     next_grid_point, reward, terminated, truncated, info = env.step(action)
+                    next_grid_point = (next_grid_point % GRID_WIDTH, next_grid_point // GRID_HEIGHT)
+                    next_img_point = grid_point_to_image_point(next_grid_point)
                     robot.stop()
                     aimed = False
                     moving = False
 
-                center, angle = robot_deviation(robot_marker, point)
+                center, angle = robot_deviation(robot_marker, next_img_point)
+
                 # cv2.line(img, center, point, (0, 255, 0), 2)
                 # cv2.putText(img, str(round(angle, 2)),(center[0], center[1] + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
@@ -285,7 +284,6 @@ while video.isOpened():
 
                 if mpl.path.Path(corners).contains_point(point):
                     robot.stop()
-                    busy = False
                     aimed = False
                     moving = False
 
@@ -293,6 +291,9 @@ while video.isOpened():
                     robot.stop()
                     aimed = False
                     moving = False
+
+                if not aimed and not moving and next_grid_point == robot_grid_point:
+                    next_grid_point = None
         else:
             robot.stop()
 
