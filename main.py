@@ -5,10 +5,13 @@ import numpy as np
 import matplotlib as mpl
 import cv2
 
-#%%
+# %%
 VIDEO_CAPTURE_DEVICE = 0
+ROBOT_ADDRESS = "10.0.0.155"
+# ROBOT_ADDRESS = "10.0.0.144"
+RESOLUTION = (640, 480)
 
-#%%
+# %%
 ARUCO_DICT = {
     "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
     "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
@@ -32,11 +35,12 @@ ARUCO_DICT = {
     "DICT_APRILTAG_36h10": cv2.aruco.DICT_APRILTAG_36h10,
     "DICT_APRILTAG_36h11": cv2.aruco.DICT_APRILTAG_36h11
 }
-#%% md
-# Detect ArUco markers on video and display thier frames and IDs
-#%%
-def aruco_detect(corners, ids, rejected, image):
 
+
+# %% md
+# Detect ArUco markers on video and display thier frames and IDs
+# %%
+def aruco_detect(corners, ids, rejected, image):
     detected = []
 
     if len(corners) > 0:
@@ -44,15 +48,15 @@ def aruco_detect(corners, ids, rejected, image):
         ids = ids.flatten()
 
         for (markerCorner, markerID) in zip(corners, ids):
-
             corners = markerCorner.reshape((4, 2))
-            corners = np.float32([corners[0], corners[3], corners[2], corners[1]]) # change order to counter-clockwise
+            corners = np.float32([corners[0], corners[3], corners[2], corners[1]])  # change order to counter-clockwise
             detected.append((int(markerID), corners))
 
     return sorted(detected)
-#%%
-def aruco_display(marker, image):
 
+
+# %%
+def aruco_display(marker, image):
     corners = marker[1]
     topLeft, bottomLeft, bottomRight, topRight = corners
 
@@ -66,14 +70,15 @@ def aruco_display(marker, image):
     cv2.line(image, bottomRight, topRight, (0, 255, 0), 2)
     cv2.line(image, topRight, topLeft, (0, 255, 0), 2)
 
-    #cv2.putText(image, str(marker[0]),(topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    # cv2.putText(image, str(marker[0]),(topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return image
-#%% md
-# Get matrix of transformation ofsetting tilt of the camera
-#%%
-def get_perspective_matrix(arucoDict, arucoParams, corners_ids):
 
+
+# %% md
+# Get matrix of transformation ofsetting tilt of the camera
+# %%
+def get_perspective_matrix(arucoDict, arucoParams, corners_ids):
     arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
     video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
 
@@ -101,17 +106,18 @@ def get_perspective_matrix(arucoDict, arucoParams, corners_ids):
     ids = [marker[0] for marker in markers]
     corner_markers = [markers[ids.index(marker_id)] for marker_id in corners_ids]
 
-    src = np.float32([corner_markers[i][1][i] for  i in range(4)])
-    dst = np.float32([[0, 0], [0, 480], [640, 480], [640, 0]])
+    src = np.float32([corner_markers[i][1][i] for i in range(4)])
+    dst = np.float32([[0, 0], [0, RESOLUTION[1]], [RESOLUTION[0], RESOLUTION[1]], [RESOLUTION[0], 0]])
 
     M = cv2.getPerspectiveTransform(src, dst)
 
     return M
-#%% md
-# Make interface respond to mouse clicks
-#%%
-def clickEvents(event, x, y, flags, param):
 
+
+# %% md
+# Make interface respond to mouse clicks
+# %%
+def clickEvents(event, x, y, flags, param):
     corners, robot = param
     global active, busy, point
 
@@ -134,20 +140,23 @@ def clickEvents(event, x, y, flags, param):
         if active and event == cv2.EVENT_RBUTTONDOWN:
             busy = False
             robot.stop()
-#%% md
+
+
+# %% md
 # Find robot's marker among all
-#%%
+# %%
 def find_robot(markers, robot_id):
     ids = [marker[0] for marker in markers]
     if robot_id in ids:
         return markers[ids.index(robot_id)]
     else:
         return None
-#%% md
-# Auxiliary function for robot
-#%%
-def robot_deviation(marker, point):
 
+
+# %% md
+# Auxiliary function for robot
+# %%
+def robot_deviation(marker, point):
     center = (marker[1][0] + marker[1][1] + marker[1][2] + marker[1][3]) / 4.0
     top_center = (marker[1][0] + marker[1][3]) / 2.0
 
@@ -160,9 +169,11 @@ def robot_deviation(marker, point):
         angle *= -1
 
     return (int(center[0]), int(center[1])), angle
-#%% md
+
+
+# %% md
 # Main block
-#%%
+# %%
 aruco_type = "DICT_4X4_50"
 arucoDict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[aruco_type])
 arucoParams = cv2.aruco.DetectorParameters()
@@ -171,7 +182,7 @@ arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
 corners_ids = [1, 2, 3, 4]
 robot_id = 5
 
-robot = Robot('10.0.0.155')
+robot = Robot(ROBOT_ADDRESS)
 
 active = False
 busy = False
@@ -184,22 +195,22 @@ sea = 30  # small enough angle, when stop aiming
 bea = 45  # big enough angle, when start reaiming
 
 point = (0, 0)
-#%%
+# %%
 M = get_perspective_matrix(arucoDict, arucoParams, corners_ids)
-#%%
+# %%
 video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
 
-#video.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-#video.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+# video.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
+# video.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
 
 while video.isOpened():
 
     ret, img = video.read()
-    img = cv2.warpPerspective(img, M, (640, 480))
+    img = cv2.warpPerspective(img, M, RESOLUTION)
 
-    #width = 1920
-    #height = 1080
-    #img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
+    # width = 1920
+    # height = 1080
+    # img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
 
     # corners, ids, rejected = cv2.aruco.detectMarkers(img, arucoDict, parameters=arucoParams)
     corners, ids, rejected = arucoDetector.detectMarkers(img)
@@ -216,51 +227,45 @@ while video.isOpened():
 
     if robot_marker is not None:
 
-        corners = robot_marker[1] # corners are needed for setMouseCallBack
+        corners = robot_marker[1]  # corners are needed for setMouseCallBack
 
         if active:
 
-            img = aruco_display(robot_marker, img) # show frames
+            img = aruco_display(robot_marker, img)  # show frames
 
             if busy:
 
                 center, angle = robot_deviation(robot_marker, point)
-                #cv2.line(img, center, point, (0, 255, 0), 2)
-                #cv2.putText(img, str(round(angle, 2)),(center[0], center[1] + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                # cv2.line(img, center, point, (0, 255, 0), 2)
+                # cv2.putText(img, str(round(angle, 2)),(center[0], center[1] + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 if not aimed and not moving and angle >= sea:
-
                     moving = True
                     robot.set_speed(ts)
                     robot.turn_right()
 
                 if not aimed and not moving and angle <= sea:
-
                     moving = True
                     robot.set_speed(ts)
                     robot.turn_left()
 
                 if not aimed and moving and (angle > -sea and angle < sea):
-
                     robot.stop()
                     aimed = True
                     moving = False
 
                 if aimed and not moving and not mpl.path.Path(corners).contains_point(point):
-
                     moving = True
                     robot.set_speed(ms)
                     robot.go_forward()
 
                 if mpl.path.Path(corners).contains_point(point):
-
                     robot.stop()
                     busy = False
                     aimed = False
                     moving = False
 
                 if aimed and moving and (angle <= -bea or angle >= bea):
-
                     robot.stop()
                     aimed = False
                     moving = False
