@@ -192,12 +192,7 @@ def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetecto
         corners, ids, rejected = detector.detectMarkers(img)
 
         img_markers, _ = aruco_display_all(corners, ids, img)
-
-        img_height, img_width, _ = img.shape
-        unit_y, unit_x = img_height / GRID_HEIGHT, img_width / GRID_WIDTH
-        for i in range(GRID_HEIGHT + 1):
-            for j in range(GRID_WIDTH + 1):
-                cv2.circle(img_markers, (round(unit_x * j), round(unit_y * i)), 4, (0, 0, 255), 10)
+        draw_grid(img_markers)
 
         cv2.imshow("markers", img_markers)
 
@@ -210,8 +205,16 @@ def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetecto
                     sure = True
                     break
 
-    return corners, ids, (img_width, img_height)
+    return corners, ids, RESOLUTION
 
+
+def draw_grid(img):
+    img_height, img_width, _ = img.shape
+    unit_y, unit_x = img_height / GRID_HEIGHT, img_width / GRID_WIDTH
+    for i in range(GRID_HEIGHT + 1):
+        for j in range(GRID_WIDTH + 1):
+            cv2.circle(img, (round(unit_x * j), round(unit_y * i)), 4, (0, 0, 255), 10)
+    return img
 
 def grid_point_to_image_point(grid_point: tuple[int, int]):
     unit_x, unit_y = RESOLUTION[0] / GRID_WIDTH, RESOLUTION[1] / GRID_HEIGHT

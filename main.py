@@ -254,7 +254,7 @@ while video.isOpened():
                     action = greedy_policy(Qtable_frozenlake, state) # 0: LEFT, 1: DOWN, 2: RIGHT, 3: UP
                     # Take the action (a) and observe the outcome state(s') and reward (r)
                     next_grid_point, reward, terminated, truncated, info = env.step(action)
-                    next_grid_point = (next_grid_point % GRID_WIDTH, next_grid_point // GRID_HEIGHT)
+                    next_grid_point = (next_grid_point // GRID_WIDTH, next_grid_point % GRID_HEIGHT)
                     next_img_point = grid_point_to_image_point(next_grid_point)
                     robot.stop()
                     aimed = False
@@ -306,6 +306,7 @@ while video.isOpened():
 
     cv2.namedWindow('video')
     cv2.setMouseCallback('video', clickEvents, (corners, robot))
+    draw_grid(img)
     cv2.imshow('video', img)
 
     key = cv2.waitKey(1) & 0xFF
