@@ -4,12 +4,11 @@ from RobotAPI import Robot
 import numpy as np
 import matplotlib as mpl
 import cv2
+from const import *
+from ai import *
+import gymnasium as gym
 
 # %%
-VIDEO_CAPTURE_DEVICE = 0
-ROBOT_ADDRESS = "10.0.0.155"
-# ROBOT_ADDRESS = "10.0.0.144"
-RESOLUTION = (640, 480)
 
 # %%
 ARUCO_DICT = {
@@ -75,9 +74,8 @@ def aruco_display(marker, image):
     return image
 
 
-# %% md
-# Get matrix of transformation ofsetting tilt of the camera
-# %%
+
+
 def get_perspective_matrix(arucoDict, arucoParams, corners_ids):
     arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
     video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
@@ -193,6 +191,7 @@ ms = 125  # moving speed
 ts = 150  # turning speed
 sea = 30  # small enough angle, when stop aiming
 bea = 45  # big enough angle, when start reaiming
+point_changed = True
 
 point = (0, 0)
 # %%
@@ -200,8 +199,9 @@ M = get_perspective_matrix(arucoDict, arucoParams, corners_ids)
 # %%
 video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
 
-# video.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-# video.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+model_to_map, initial_marker, detected_markers, marker_centers = mark_up_map(video, arucoDetector)
+frozen_lake = place_cubes(video, arucoDetector, model_to_map, initial_marker, detected_markers, robot_id)
+
 
 while video.isOpened():
 
@@ -226,7 +226,7 @@ while video.isOpened():
         cv2.circle(img, point, 12, (0, 255, 0), 2)
 
     if robot_marker is not None:
-
+        robot_x, robot_y = (robot_marker[1][0] + robot_marker[1][1] + robot_marker[1][2] + robot_marker[1][3]) / 4.0
         corners = robot_marker[1]  # corners are needed for setMouseCallBack
 
         if active:
@@ -234,6 +234,32 @@ while video.isOpened():
             img = aruco_display(robot_marker, img)  # show frames
 
             if busy:
+                if point_changed:
+                    point_changed = False
+                    start = approximate_point_to_grid(initial_marker, robot_x, robot_y)
+                    end = approximate_point_to_grid(initial_marker, point[0], point[1])
+                    print(start, end)
+                    frozen_part = frozen_lake[min(start[0],end[0]):max(start[0],end[0])][min(start[1], end[1]), max(start[1], end[1])]
+                    frozen_part[0,0] = 'S'
+                    frozen_part[-1,-1] = 'G'
+                    env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
+
+                    state_space = env.observation_space.n
+                    print("There are ", state_space, " possible states")
+
+                    action_space = env.action_space.n
+                    print("There are ", action_space, " possible actions")
+                    Qtable_frozenlake = get_policy(state_space, action_space, env)
+                    state, info = env.reset()
+                    next_grid_point = None
+
+                if not next_grid_point or (mpl.path.Path(robot_marker[1]).contains_point(model_to_map[next_grid_point])):
+                    action = greedy_policy(Qtable_frozenlake, state) # 0: LEFT, 1: DOWN, 2: RIGHT, 3: UP
+                    # Take the action (a) and observe the outcome state(s') and reward (r)
+                    next_grid_point, reward, terminated, truncated, info = env.step(action)
+                    robot.stop()
+                    aimed = False
+                    moving = False
 
                 center, angle = robot_deviation(robot_marker, point)
                 # cv2.line(img, center, point, (0, 255, 0), 2)
@@ -269,6 +295,8 @@ while video.isOpened():
                     robot.stop()
                     aimed = False
                     moving = False
+        else:
+            robot.stop()
 
     else:
         corners = np.zeros((4, 2))
