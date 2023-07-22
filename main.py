@@ -113,7 +113,7 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
 # %%
 def clickEvents(event, x, y, flags, param):
     corners, robot = param
-    global active, busy, point
+    global active, point, is_way_found
 
     if event == cv2.EVENT_LBUTTONDBLCLK:
         if mpl.path.Path(corners).contains_point((x, y)):
@@ -122,17 +122,16 @@ def clickEvents(event, x, y, flags, param):
             robot.led_on()
         else:
             active = False
-            busy = False
             robot.stop()
             robot.led_off()
     else:
         if active and event == cv2.EVENT_LBUTTONDOWN:
-            busy = True
             robot.stop()
+
             point = (x, y)
+            is_way_found = False
 
         if active and event == cv2.EVENT_RBUTTONDOWN:
-            busy = False
             robot.stop()
 
 
@@ -179,9 +178,9 @@ robot_id = 5
 robot = Robot(ROBOT_ADDRESS)
 
 active = False
-busy = False
 aimed = False
 moving = False
+is_way_found = False
 
 ms = 125  # moving speed
 ts = 150  # turning speed
@@ -189,7 +188,7 @@ sea = 30  # small enough angle, when stop aiming
 bea = 45  # big enough angle, when start reaiming
 point_changed = True
 
-point = (0, 0)
+point: tuple[int, int] | None = None
 # %%
 video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
 M = get_perspective_matrix(video, arucoDetector, corners_ids)
@@ -217,7 +216,7 @@ while video.isOpened():
     robot_marker = find_robot(markers, robot_id)
 
     ### START OF INTERFACE CONTROL SECTION
-    if busy:
+    if point:
         # show target in aim-like style
         cv2.circle(img, point, 3, (0, 255, 0), -1)
         cv2.circle(img, point, 12, (0, 255, 0), 2)
@@ -229,28 +228,30 @@ while video.isOpened():
         if active:
 
             img = aruco_display(robot_marker, img)  # show frames
+            start = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
+            # end = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, *point)
 
-            if busy:
-                if point_changed:
-                    point_changed = False
-                    start = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
-                    end = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, point[0], point[1])
-                    print(start, end)
-                    frozen_part = frozen_lake[min(start[0],end[0]):max(start[0],end[0])][min(start[1], end[1]), max(start[1], end[1])]
-                    frozen_part[0,0] = 'S'
-                    frozen_part[-1,-1] = 'G'
-                    env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
+            if point and not is_way_found:
+                # start = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
+                end = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, *point)
 
-                    state_space = env.observation_space.n
-                    print("There are ", state_space, " possible states")
+                frozen_part = frozen_lake
+                frozen_part[start[0], start[1]] = 'S'
+                frozen_part[end[0], end[1]] = 'G'
+                env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
 
-                    action_space = env.action_space.n
-                    print("There are ", action_space, " possible actions")
-                    Qtable_frozenlake = get_policy(state_space, action_space, env)
-                    state, info = env.reset()
-                    next_grid_point = None
+                state_space = env.observation_space.n
+                print("There are ", state_space, " possible states")
 
-                if not next_grid_point or (mpl.path.Path(robot_marker[1]).contains_point(model_to_map[next_grid_point])):
+                action_space = env.action_space.n
+                print("There are ", action_space, " possible actions")
+                Qtable_frozenlake = get_policy(state_space, action_space, env)
+                state, info = env.reset()
+                next_grid_point = None
+                is_way_found = True
+
+
+                if not next_grid_point:
                     action = greedy_policy(Qtable_frozenlake, state) # 0: LEFT, 1: DOWN, 2: RIGHT, 3: UP
                     # Take the action (a) and observe the outcome state(s') and reward (r)
                     next_grid_point, reward, terminated, truncated, info = env.step(action)
