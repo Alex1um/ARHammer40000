@@ -235,7 +235,7 @@ while video.isOpened():
             if point:
                 if not is_way_found:
 
-                    frozen_part = frozen_lake
+                    frozen_part = frozen_lake.copy()
                     frozen_part[robot_grid_point[0], robot_grid_point[1]] = 'S'
                     frozen_part[point[0], point[1]] = 'G'
                     env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
@@ -251,10 +251,11 @@ while video.isOpened():
                     is_way_found = True
 
                 if not next_grid_point:
-                    action = greedy_policy(Qtable_frozenlake, state) # 0: LEFT, 1: DOWN, 2: RIGHT, 3: UP
-                    # Take the action (a) and observe the outcome state(s') and reward (r)
-                    next_grid_point, reward, terminated, truncated, info = env.step(action)
-                    next_grid_point = (next_grid_point // GRID_WIDTH, next_grid_point % GRID_HEIGHT)
+                    while next_grid_point == robot_grid_point or next_grid_point is None:
+                        action = greedy_policy(Qtable_frozenlake, state) # 0: LEFT, 1: DOWN, 2: RIGHT, 3: UP
+                        # Take the action (a) and observe the outcome state(s') and reward (r)
+                        next_grid_point, reward, terminated, truncated, info = env.step(action)
+                        next_grid_point = (next_grid_point // GRID_HEIGHT, next_grid_point % GRID_HEIGHT)
                     next_img_point = grid_point_to_image_point(next_grid_point)
                     robot.stop()
                     aimed = False
@@ -297,6 +298,9 @@ while video.isOpened():
 
                 if not aimed and not moving and next_grid_point == robot_grid_point:
                     next_grid_point = None
+                    if robot_grid_point == point:
+                        point = None
+
         else:
             robot.stop()
 
