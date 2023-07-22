@@ -195,9 +195,9 @@ video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
 M = get_perspective_matrix(video, arucoDetector, corners_ids)
 
 # %%
-model_to_map, initial_marker, detected_markers, marker_centers = mark_up_map(video, arucoDetector, M)
+corners, ids, shape = find_aruco_markers(video, arucoDetector, M)
 # %%
-frozen_lake = place_cubes(video, arucoDetector, M, model_to_map, initial_marker, detected_markers, robot_id)
+frozen_lake = make_frozen_lake(corners, ids, robot_id, GRID_WIDTH, GRID_HEIGHT, *shape)
 
 # %%
 while video.isOpened():
@@ -233,8 +233,8 @@ while video.isOpened():
             if busy:
                 if point_changed:
                     point_changed = False
-                    start = approximate_point_to_grid(initial_marker, robot_x, robot_y)
-                    end = approximate_point_to_grid(initial_marker, point[0], point[1])
+                    start = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
+                    end = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, point[0], point[1])
                     print(start, end)
                     frozen_part = frozen_lake[min(start[0],end[0]):max(start[0],end[0])][min(start[1], end[1]), max(start[1], end[1])]
                     frozen_part[0,0] = 'S'

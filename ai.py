@@ -3,6 +3,7 @@ import numpy as np
 import math
 import random
 from const import *
+import matplotlib as mpl
 
 
 def aruco_display_all(corners, ids, image):
@@ -153,26 +154,19 @@ def cells_initialization(model_to_map, initial_marker, detected_markers):
     return cell_centers
 
 
-def approximate_point_to_grid(initial_marker, x, y):
-    top_left, top_right, bottom_right, bottom_left = initial_marker
-    x0, y0 = (x, y)
-    x_const, y_const = top_left
-    x_a, y_a = top_right - top_left
-    x_b, y_b = bottom_left - top_left
-    j = round(((x0 * y_b) / x_b - y0 + y_const - (x_const * y_b) / x_b) / ((x_a * y_b) / x_b - y_a) - 0.5)
-    i = round(((x0 * y_a) / x_a - y0 + y_const - (x_const * y_a) / x_a) / ((x_b * y_a) / x_a - y_b) - 0.5)
-    return i, j
+def approximate_point_to_grid(img_w, img_h, board_w, board_h, x_click, y_click):
+    return int(x_click / img_w * board_w), int(y_click / img_h * board_h)
 
 
-def make_frozen_lake(id, initial_marker, marker_centers, ids, robot_id):
-    top_left, top_right, bottom_right, bottom_left = initial_marker
-    frozen_lake = np.full((GRID_HEIGHT, GRID_WIDTH), 'F')
-    for (dot, num) in zip(marker_centers, ids):
-        if num == id or num == robot_id:
-            continue
-        x0, y0 = dot
-        i, j = approximate_point_to_grid(initial_marker, x0, y0)
-        frozen_lake[i][j] = 'H'
+def make_frozen_lake(corners, ids, robot_id, board_width, board_height, img_width, img_height):
+    frozen_lake = np.full((board_height, board_width), 'F')
+    for (corner, num) in zip(corners, ids):
+        for point in corner[0]:
+            if num[0] == robot_id:
+                continue
+            x0, y0 = point
+            i, j = approximate_point_to_grid(img_width, img_height, board_width, board_height, x0, y0)
+            frozen_lake[i][j] = 'H'
         # for d1 in range(0, 2):
         #     for d2 in range(0, 2):
         #         frozen_lake[i + d1][j + d2] = 'H'
@@ -182,97 +176,38 @@ def make_frozen_lake(id, initial_marker, marker_centers, ids, robot_id):
     return frozen_lake
 
 
-def build_map(id, corners, ids, height, width):
-    model_to_map = {}
-    for (marker, num) in zip(corners, ids):
-        if num == id:
-            marker_corner = marker
-            break
-
-    marker_corner = marker_corner.reshape((4, 2))
-    y_sorted = sorted(marker_corner, key=lambda x: x[1])
-    top_left = min(y_sorted[:2], key=lambda x: x[0])
-    top_right = max(y_sorted[:2], key=lambda x: x[0])
-    bottom_left = min(y_sorted[-2:], key=lambda x: x[0])
-    bottom_right = min(y_sorted[-2:], key=lambda x: x[0])
-    # (top_left, top_right, bottom_right, bottom_left) = sorted(marker_corner, key=lambda x: (x[1],x[0]))
-    top_left = np.array(top_left)
-    top_right = np.array(top_right)
-    bottom_left = np.array(bottom_left)
-    bottom_right = np.array(bottom_right)
-    for i in range(height):
-        for j in range(width):
-            dot = top_left + (top_right - top_left) * j + (bottom_left - top_left) * i
-            model_to_map[i * width + j] = dot.astype('int32')
-    return model_to_map, (top_left, top_right, bottom_right, bottom_left)
-
-
 def path_is_complex(A, B, markers):
     # TODO
     pass
 
 
-def mark_up_map(cap: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix):
-    """
-    1-й этап: размечаем карту по одному кубику
-    :return:
-    """
+def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix):
 
-    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    sure = False
+    while not sure:
 
-    while True:
-        ret, img = cap.read()
+        ret, img = video.read()
         img = cv2.warpPerspective(img, perspective_matrix, RESOLUTION)
-
-        h, w, _ = img.shape
-
-        # width = 1000
-        # height = int(width * (h / w))
-        # img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
-        corners, ids, rejected = detector.detectMarkers(img)
-
-        detected_markers, marker_centers = aruco_display_all(corners, ids, img)
-        model_to_map, initial_marker = build_map(corners, ids, GRID_HEIGHT, GRID_WIDTH)
-        for val in model_to_map.values():
-            cv2.circle(detected_markers, tuple(val), 4, (0, 0, 255), -1)
-        cv2.imshow("Image", detected_markers)
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord("q"):
-            return model_to_map, initial_marker, detected_markers, marker_centers
-            break
-
-
-def place_cubes(cap: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix, model_to_map, initial_marker,
-                detected_markers, robot_id):
-    """
-    2-й этап: выставляем все кубики
-    """
-
-    cell_centers = cells_initialization(model_to_map, initial_marker, detected_markers)
-    #
-    while True:
-        ret, img = cap.read()
-        img = cv2.warpPerspective(img, perspective_matrix, RESOLUTION)
-
-        h, w, _ = img.shape
-
-        # width = 1000
-        # height = int(width * (h / w))
-        # img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
 
         corners, ids, rejected = detector.detectMarkers(img)
 
-        detected_markers, marker_centers = aruco_display_all(corners, ids, img)
-        for v in model_to_map.values():
-            cv2.circle(detected_markers, v, 4, (0, 0, 255), -1)
-        for v in cell_centers.values():
-            cv2.circle(detected_markers, v, 4, (0, 255, 0), -1)
-        cv2.imshow("Image", detected_markers)
+        img_markers, _ = aruco_display_all(corners, ids, img)
+
+        img_height, img_width, _ = img.shape
+        unit_y, unit_x = img_height / GRID_HEIGHT, img_width / GRID_WIDTH
+        for i in range(GRID_HEIGHT + 1):
+            for j in range(GRID_WIDTH + 1):
+                cv2.circle(img_markers, (round(unit_x * j), round(unit_y * i)), 4, (0, 0, 255), 10)
+
+        cv2.imshow("markers", img_markers)
 
         key = cv2.waitKey(1) & 0xFF
-        if key == ord("q"):
-            break
+        if key == ord('q'):
 
-    frozen_lake = make_frozen_lake(INITIAL_ID, initial_marker, marker_centers, ids, robot_id)
-    return frozen_lake
+            while True:
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    sure = True
+                    break
+
+    return corners, ids, (img_width, img_height)
