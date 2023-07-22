@@ -74,11 +74,7 @@ def aruco_display(marker, image):
     return image
 
 
-
-
-def get_perspective_matrix(arucoDict, arucoParams, corners_ids):
-    arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
-    video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
+def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.ArucoDetector, corners_ids):
 
     while video.isOpened():
 
@@ -97,7 +93,7 @@ def get_perspective_matrix(arucoDict, arucoParams, corners_ids):
         if key == 13 and all([marker_id in ids for marker_id in corners_ids]):
             break
 
-    video.release()
+    # video.release()
     cv2.destroyAllWindows()
 
     # only markers whose ids in corners_ids will be added
@@ -195,14 +191,15 @@ point_changed = True
 
 point = (0, 0)
 # %%
-M = get_perspective_matrix(arucoDict, arucoParams, corners_ids)
-# %%
 video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
+M = get_perspective_matrix(video, arucoDetector, corners_ids)
 
-model_to_map, initial_marker, detected_markers, marker_centers = mark_up_map(video, arucoDetector)
-frozen_lake = place_cubes(video, arucoDetector, model_to_map, initial_marker, detected_markers, robot_id)
+# %%
+model_to_map, initial_marker, detected_markers, marker_centers = mark_up_map(video, arucoDetector, M)
+# %%
+frozen_lake = place_cubes(video, arucoDetector, M, model_to_map, initial_marker, detected_markers, robot_id)
 
-
+# %%
 while video.isOpened():
 
     ret, img = video.read()

@@ -212,27 +212,28 @@ def path_is_complex(A, B, markers):
     pass
 
 
-def mark_up_map(cap: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector):
+def mark_up_map(cap: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix):
     """
     1-й этап: размечаем карту по одному кубику
     :return:
     """
 
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
     while True:
         ret, img = cap.read()
+        img = cv2.warpPerspective(img, perspective_matrix, RESOLUTION)
 
         h, w, _ = img.shape
 
-        width = 1000
-        height = int(width * (h / w))
-        img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
+        # width = 1000
+        # height = int(width * (h / w))
+        # img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
         corners, ids, rejected = detector.detectMarkers(img)
 
         detected_markers, marker_centers = aruco_display_all(corners, ids, img)
-        model_to_map, initial_marker = build_map(INITIAL_ID, corners, ids, GRID_HEIGHT, GRID_WIDTH)
+        model_to_map, initial_marker = build_map(corners, ids, GRID_HEIGHT, GRID_WIDTH)
         for val in model_to_map.values():
             cv2.circle(detected_markers, tuple(val), 4, (0, 0, 255), -1)
         cv2.imshow("Image", detected_markers)
@@ -242,7 +243,7 @@ def mark_up_map(cap: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector):
             break
 
 
-def place_cubes(cap: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, model_to_map, initial_marker,
+def place_cubes(cap: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix, model_to_map, initial_marker,
                 detected_markers, robot_id):
     """
     2-й этап: выставляем все кубики
@@ -252,12 +253,13 @@ def place_cubes(cap: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, model_
     #
     while True:
         ret, img = cap.read()
+        img = cv2.warpPerspective(img, perspective_matrix, RESOLUTION)
 
         h, w, _ = img.shape
 
-        width = 1000
-        height = int(width * (h / w))
-        img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
+        # width = 1000
+        # height = int(width * (h / w))
+        # img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
 
         corners, ids, rejected = detector.detectMarkers(img)
 
