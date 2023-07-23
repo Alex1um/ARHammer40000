@@ -236,6 +236,8 @@ while video.isOpened():
             if robot.point:
                 if not robot.is_way_found:
                     frozen_lake, obstacles_corners = make_frozen_lake(corners, ids, rid, GRID_WIDTH, GRID_HEIGHT, *shape)
+
+                    img = aruco_display_all(obstacles_corners, ids, img)
                     if path_is_complex(RESOLUTION[0]/GRID_WIDTH, obstacles_corners, (robot_x, robot_y), robot.point):
                         frozen_part = frozen_lake.copy()
                         frozen_part[robot.robot_grid_point[0], robot.robot_grid_point[1]] = 'S'
@@ -304,7 +306,10 @@ while video.isOpened():
                     robot.aimed = False
                     robot.moving = False
 
-                if not robot.aimed and not robot.moving and robot.next_grid_point == robot.robot_grid_point:
+                if robot.next_grid_point == robot.robot_grid_point:
+                    robot.robot.stop()
+                    robot.aimed = False
+                    robot.moving = False
                     if robot.robot_grid_point == robot.point:
                         robot.point = None
                     robot.next_grid_point = None
