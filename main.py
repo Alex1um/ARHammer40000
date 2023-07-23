@@ -106,7 +106,7 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
 
     M = cv2.getPerspectiveTransform(src, dst)
 
-    return M, corner_markers
+    return M
 
 
 # %% md
@@ -179,12 +179,12 @@ robots: dict[int, Robots.PlayableRobot] = Robots({
 
 # %%
 video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
-M, corner_markers = get_perspective_matrix(video, arucoDetector, corners_ids)
+M = get_perspective_matrix(video, arucoDetector, corners_ids)
 
 # %%
 corners, ids, shape = find_aruco_markers(video, arucoDetector, M)
 # %%
-frozen_lake = make_frozen_lake(corners, ids, robots, GRID_WIDTH, GRID_HEIGHT, *shape)
+frozen_lake, obstacles_corners = make_frozen_lake(corners, ids, robots, GRID_WIDTH, GRID_HEIGHT, *shape)
 
 # %%
 while video.isOpened():
@@ -228,7 +228,7 @@ while video.isOpened():
 
             if robot.point:
                 if not robot.is_way_found:
-                    if path_is_complex(RESOLUTION[0]/GRID_WIDTH, corner_markers, (robot_x, robot_y), robot.point):
+                    if path_is_complex(RESOLUTION[0]/GRID_WIDTH, obstacles_corners, (robot_x, robot_y), robot.point):
                         frozen_part = frozen_lake.copy()
                         frozen_part[robot.robot_grid_point[0], robot.robot_grid_point[1]] = 'S'
                         frozen_part[robot.point[0], robot.point[1]] = 'G'
