@@ -12,7 +12,7 @@ class Robots(dict):
             self.aimed = False
             self.moving = False
             self.is_way_found = False
-            self.point: tuple[int, int] | None = None
+            self.end_grid_point: tuple[int, int] | None = None
             self.robot_grid_point: tuple[int, int] | None = None
             self.next_grid_point = None
             self.next_img_point = None

@@ -121,20 +121,14 @@ def clickEvents(event, x, y, flags, param):
     elif event == cv2.EVENT_MOUSEMOVE:
         selection_current_point = (x, y)
     elif event == cv2.EVENT_LBUTTONUP:
+        path = mpl.path.Path((selection_start_point, (selection_start_point[0], y), (x, y), (x, selection_start_point[1])))
         selection_start_point = None
         selection_current_point = None
-        path = mpl.path.Path(selection_start_point, (x, y))
+        selected = False
         for rid, corner in robots_corners.items():
             robot = robots[rid]
-            mean = corner.mean()
-            if path.contains_point(mean):
-                robot.active = True
-                robot.robot.stop()
-                robot.robot.led_on()
-    elif event == cv2.EVENT_LBUTTONUP:
-        selected = False
-        for rid, robot in robots.items():
-            if mpl.path.Path(robots_corners[rid]).contains_point((x, y)):
+            mean = corner.mean(axis=0)
+            if path.contains_point(mean) or mpl.path.Path(robots_corners[rid]).contains_point((x, y)):
                 robot.active = True
                 robot.robot.stop()
                 robot.robot.led_on()
@@ -145,16 +139,17 @@ def clickEvents(event, x, y, flags, param):
                 robot.robot.stop()
                 robot.robot.led_off()
     elif event == cv2.EVENT_RBUTTONDOWN:
-        for robot in robots.values:
-            robot.robot.stop()
-            robot.aimed = False
-            robot.moving = False
-            new_point = approximate_point_to_grid(*RESOLUTION, GRID_WIDTH, GRID_HEIGHT, x, y)
-            if robot.point != new_point:
-                robot.point = new_point
-                robot.is_way_found = False
-            if robot.robot_grid_point == new_point:
-                robot.point = new_point
+        for robot in robots.values():
+            if robot.active:
+                robot.robot.stop()
+                robot.aimed = False
+                robot.moving = False
+                new_point = approximate_point_to_grid(*RESOLUTION, GRID_WIDTH, GRID_HEIGHT, x, y)
+                if robot.end_grid_point != new_point:
+                    robot.end_grid_point = new_point
+                    robot.is_way_found = False
+                if robot.robot_grid_point == new_point:
+                    robot.end_grid_point = new_point
 
 # %% md
 # Find robot's marker among all
@@ -252,13 +247,13 @@ while video.isOpened():
 
             img = aruco_display(robot_marker, img)  # show frames
 
-            if robot.point:
+            if robot.end_grid_point:
                 if not robot.is_way_found:
                     frozen_lake, obstacles_corners = make_frozen_lake(corners, ids, rid, GRID_WIDTH, GRID_HEIGHT, *shape)
-                    if path_is_complex(img, RESOLUTION[0]/GRID_WIDTH, obstacles_corners, (robot_x, robot_y), grid_point_to_image_point(robot.point)):
+                    if path_is_complex(img, RESOLUTION[0]/GRID_WIDTH, obstacles_corners, (robot_x, robot_y), grid_point_to_image_point(robot.end_grid_point)):
                         frozen_part = frozen_lake.copy()
                         frozen_part[robot.robot_grid_point[0], robot.robot_grid_point[1]] = 'S'
-                        frozen_part[robot.point[0], robot.point[1]] = 'G'
+                        frozen_part[robot.end_grid_point[0], robot.end_grid_point[1]] = 'G'
                         env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
 
                         state_space = env.observation_space.n
@@ -271,7 +266,7 @@ while video.isOpened():
                         robot.next_grid_point = None
                         robot.is_way_found = True
                     else:
-                        robot.next_grid_point = robot.point
+                        robot.next_grid_point = robot.end_grid_point
                         robot.is_way_found = True
 
                 if not robot.next_grid_point:
@@ -308,12 +303,12 @@ while video.isOpened():
                     robot.aimed = True
                     robot.moving = False
 
-                if robot.aimed and not robot.moving and not mpl.path.Path(robot_corners[rid]).contains_point(robot.point):
+                if robot.aimed and not robot.moving and not mpl.path.Path(robot_corners[rid]).contains_point(robot.end_grid_point):
                     robot.moving = True
                     robot.robot.set_speed(MS)
                     robot.robot.go_forward()
 
-                if mpl.path.Path(robot_corners[rid]).contains_point(robot.point):
+                if mpl.path.Path(robot_corners[rid]).contains_point(robot.end_grid_point):
                     robot.robot.stop()
                     robot.aimed = False
                     robot.moving = False
@@ -327,8 +322,8 @@ while video.isOpened():
                     robot.robot.stop()
                     robot.aimed = False
                     robot.moving = False
-                    if robot.robot_grid_point == robot.point:
-                        robot.point = None
+                    if robot.robot_grid_point == robot.end_grid_point:
+                        robot.end_grid_point = None
                     robot.next_grid_point = None
                     robot.next_img_point = None
 
@@ -338,8 +333,8 @@ while video.isOpened():
         if robot.next_img_point:
             cv2.circle(img, robot.next_img_point, 3, (0, 255, 0), -1)
             cv2.circle(img, robot.next_img_point, 12, (0, 255, 0), 2)
-        if robot.point:
-            dest = grid_point_to_image_point(robot.point)
+        if robot.end_grid_point:
+            dest = grid_point_to_image_point(robot.end_grid_point)
             cv2.circle(img, dest, 3, (0, 0, 255), -1)
             cv2.circle(img, dest, 12, (0, 0, 255), 2)
 
