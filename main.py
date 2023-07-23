@@ -137,12 +137,13 @@ def clickEvents(event, x, y, flags, param):
 # %% md
 # Find robot's marker among all
 # %%
-def find_robot(markers, robot_id):
+def find_robots(markers, robots: Robots):
     ids = [marker[0] for marker in markers]
-    if robot_id in ids:
-        return markers[ids.index(robot_id)]
-    else:
-        return None
+    robot_markers = dict()
+    for rid in robots.keys():
+        if rid in ids:
+            robot_markers[rid] = markers[ids.index(rid)]
+    return robot_markers
 
 
 # %% md
@@ -210,7 +211,7 @@ while video.isOpened():
 
     markers = aruco_detect(corners, ids, rejected, img)
 
-    robot_marker = find_robot(markers, robot_id)
+    robot_markers = find_robots(markers, robots)
 
     ### START OF INTERFACE CONTROL SECTION
     if next_img_point:
@@ -223,7 +224,7 @@ while video.isOpened():
         cv2.circle(img, dest, 3, (0, 0, 255), -1)
         cv2.circle(img, dest, 12, (0, 0, 255), 2)
 
-    if robot_marker is not None:
+    for robot_marker in robot_markers:
         robot_x, robot_y = (robot_marker[1][0] + robot_marker[1][1] + robot_marker[1][2] + robot_marker[1][3]) / 4.0
         robot_grid_point = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
         corners = robot_marker[1]  # corners are needed for setMouseCallBack
