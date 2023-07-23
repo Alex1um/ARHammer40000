@@ -306,6 +306,15 @@ while video.isOpened():
         else:
             robot.robot.stop()
 
+        if robot.next_img_point:
+            cv2.circle(img, robot.next_img_point, 3, (0, 255, 0), -1)
+            cv2.circle(img, robot.next_img_point, 12, (0, 255, 0), 2)
+        if robot.point:
+            dest = grid_point_to_image_point(robot.point)
+            cv2.circle(img, dest, 3, (0, 0, 255), -1)
+            cv2.circle(img, dest, 12, (0, 0, 255), 2)
+
+
     else:
         corners = np.zeros((4, 2))
     ### END OF INTERFACE CONTROL SECTION
