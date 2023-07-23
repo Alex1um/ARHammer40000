@@ -262,15 +262,15 @@ while video.isOpened():
                         frozen_part = frozen_lake.copy()
                         frozen_part[robot.robot_grid_point[0], robot.robot_grid_point[1]] = 'S'
                         frozen_part[robot.end_grid_point[0], robot.end_grid_point[1]] = 'G'
-                        env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
+                        robot.env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
 
-                        state_space = env.observation_space.n
+                        state_space = robot.env.observation_space.n
                         print("There are ", state_space, " possible states")
 
-                        action_space = env.action_space.n
+                        action_space = robot.env.action_space.n
                         print("There are ", action_space, " possible actions")
                         robot.Qtable_frozenlake = get_policy(state_space, action_space, env)
-                        robot.state, info = env.reset()
+                        robot.state, info = robot.env.reset()
                         robot.next_grid_point = None
                         robot.is_way_found = True
                     else:
@@ -282,7 +282,7 @@ while video.isOpened():
                     while robot.next_grid_point == robot.robot_grid_point or robot.next_grid_point is None:
                         action = greedy_policy(robot.Qtable_frozenlake, robot.state) # 0: LEFT, 1: DOWN, 2: RIGHT, 3: UP
                         # Take the action (a) and observe the outcome state(s') and reward (r)
-                        next_grid_point, reward, terminated, truncated, info = env.step(action)
+                        next_grid_point, reward, terminated, truncated, info = robot.env.step(action)
                         robot.state = next_grid_point
                         robot.next_grid_point = (next_grid_point // GRID_HEIGHT, next_grid_point % GRID_HEIGHT)
                     robot.robot.stop()
