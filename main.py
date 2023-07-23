@@ -269,7 +269,7 @@ while video.isOpened():
 
                         action_space = robot.env.action_space.n
                         print("There are ", action_space, " possible actions")
-                        robot.Qtable_frozenlake = get_policy(state_space, action_space, env)
+                        robot.Qtable_frozenlake = get_policy(state_space, action_space, robot.env)
                         robot.state, info = robot.env.reset()
                         robot.next_grid_point = None
                         robot.is_way_found = True
