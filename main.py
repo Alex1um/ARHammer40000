@@ -115,10 +115,14 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
 # %%
 def clickEvents(event, x, y, flags, param):
     robots_corners, robots = param
-    global selection_start_point
+    global selection_start_point, selection_current_point
     if event == cv2.EVENT_LBUTTONDOWN:
         selection_start_point = (x, y)
+    elif event == cv2.EVENT_MOUSEMOVE:
+        selection_current_point = (x, y)
     elif event == cv2.EVENT_LBUTTONUP:
+        selection_start_point = None
+        selection_current_point = None
         path = mpl.path.Path(selection_start_point, (x, y))
         for rid, corner in robots_corners.items():
             robot = robots[rid]
@@ -191,6 +195,9 @@ arucoParams = cv2.aruco.DetectorParameters()
 arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
 
 corners_ids = [1, 2, 3, 4]
+
+selection_start_point = None
+selection_current_point = None
 
 robots: dict[int, Robots.PlayableRobot] = Robots({
     5: Robot(ROBOT_ADDRESS),
@@ -345,6 +352,8 @@ while video.isOpened():
 
     cv2.namedWindow('video')
     cv2.setMouseCallback('video', clickEvents, (robot_corners, robots))
+    if selection_start_point and selection_current_point:
+        img = cv2.rectangle(img, selection_start_point, selection_current_point, (0, 255, 0), 2)
     draw_grid(img)
     cv2.imshow('video', img)
 
