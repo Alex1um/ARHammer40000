@@ -132,10 +132,14 @@ def clickEvents(event, x, y, flags, param):
                 robot.active = True
                 robot.robot.stop()
                 robot.robot.led_on()
+                robot.aimed = False
+                robot.moving = False
                 selected = True
         if not selected:
             for robot in robots.values():
                 robot.active = False
+                robot.aimed = False
+                robot.moving = False
                 robot.robot.stop()
                 robot.robot.led_off()
     elif event == cv2.EVENT_RBUTTONDOWN:
