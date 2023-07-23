@@ -115,30 +115,42 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
 # %%
 def clickEvents(event, x, y, flags, param):
     robots_corners, robots = param
-    selected = False
-    for rid, robot in robots.items():
-        if event == cv2.EVENT_LBUTTONDOWN:
+    global selection_start_point
+    if event == cv2.EVENT_LBUTTONDOWN:
+        selection_start_point = (x, y)
+    elif event == cv2.EVENT_LBUTTONUP:
+        path = mpl.path.Path(selection_start_point, (x, y))
+        for rid, corner in robots_corners.items():
+            robot = robots[rid]
+            mean = corner.mean()
+            if path.contains_point(mean):
+                robot.active = True
+                robot.robot.stop()
+                robot.robot.led_on()
+    elif event == cv2.EVENT_LBUTTONUP:
+        selected = False
+        for rid, robot in robots.items():
             if mpl.path.Path(robots_corners[rid]).contains_point((x, y)):
                 robot.active = True
                 robot.robot.stop()
                 robot.robot.led_on()
                 selected = True
-            # else:
-            #     robot.active = False
-            #     robot.robot.stop()
-            #     robot.robot.led_off()
-        else:
-            if robot.active and event == cv2.EVENT_RBUTTONDOWN:
+        if not selected:
+            for robot in robots.values():
+                robot.active = False
                 robot.robot.stop()
-                new_point = approximate_point_to_grid(*RESOLUTION, GRID_WIDTH, GRID_HEIGHT, x, y)
-                if robot.point != new_point and robot.robot_grid_point != new_point:
-                    robot.point = new_point
-                    robot.is_way_found = False
-    if event == cv2.EVENT_LBUTTONDOWN and not selected:
-        for robot in robots.values():
-            robot.active = False
+                robot.robot.led_off()
+    elif event == cv2.EVENT_RBUTTONDOWN:
+        for robot in robots.values:
             robot.robot.stop()
-            robot.robot.led_off()
+            robot.aimed = False
+            robot.moving = False
+            new_point = approximate_point_to_grid(*RESOLUTION, GRID_WIDTH, GRID_HEIGHT, x, y)
+            if robot.point != new_point:
+                robot.point = new_point
+                robot.is_way_found = False
+            if robot.robot_grid_point == new_point:
+                robot.point = new_point
 
 # %% md
 # Find robot's marker among all
