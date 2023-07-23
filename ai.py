@@ -200,7 +200,7 @@ def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetecto
         if key == ord('q'):
 
             while True:
-                key = cv2.waitKey(100) & 0xFF
+                key = cv2.waitKey(500) & 0xFF
                 if key == ord('q'):
                     sure = True
                 break
