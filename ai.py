@@ -170,22 +170,25 @@ def make_frozen_lake(corners, ids, robot_id: int, board_width, board_height, img
                 x0, y0 = point
                 i, j = approximate_point_to_grid(img_width, img_height, board_width, board_height, x0, y0)
                 frozen_lake[i][j] = 'H'
-                obstacles_corners.append(corner)
+            if num[0] != robot_id:
+                obstacles_corners.append((num, corner[0]))
 
     # frozen_lake[0, 0] = 'S'
     # frozen_lake[grid_height - 1, grid_width - 1] = 'G'
     return frozen_lake, obstacles_corners
 
 
-def path_is_complex(cell_size, markers, A, B):
+def path_is_complex(img, cell_size, markers, A, B):
     v1 = np.array([B[0]-A[0], B[1]-A[1]])
-    for marker in markers:
+    for num, marker in markers:
         r = 2e9
         for corner in marker:
             v2 = (corner[0]-A[0], corner[1]-A[1])
             v21 = v1 * (np.dot(v1, v2) / np.dot(v1,v1))
             r = min(r, np.linalg.norm(v2 - v21))
+        
         if r <= (cell_size):
+            print(r, num, np.linalg.norm(v2), cell_size)
             return True
     return False
 
