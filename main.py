@@ -212,18 +212,10 @@ video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
 M = get_perspective_matrix(video, arucoDetector, corners_ids)
 
 # %%
-corners, ids, shape = find_aruco_markers(video, arucoDetector, M)
-# %%
-
-# %%
 while video.isOpened():
 
     ret, img = video.read()
     img = cv2.warpPerspective(img, M, RESOLUTION)
-
-    # width = 1920
-    # height = 1080
-    # img = cv2.resize(img, (width, height), interpolation=cv2.INTER_CUBIC)
 
     # corners, ids, rejected = cv2.aruco.detectMarkers(img, arucoDict, parameters=arucoParams)
     corners, ids, rejected = arucoDetector.detectMarkers(img)
@@ -235,20 +227,10 @@ while video.isOpened():
     robot_corners = dict()
 
     ### START OF INTERFACE CONTROL SECTION
-    # if next_img_point:
-    #     # show target in aim-like style
-    #
-    #     # next_img_point = grid_point_to_image_point(next_grid_point)
-    #     cv2.circle(img, next_img_point, 3, (0, 255, 0), -1)
-    #     cv2.circle(img, next_img_point, 12, (0, 255, 0), 2)
-    #     dest = grid_point_to_image_point(point)
-    #     cv2.circle(img, dest, 3, (0, 0, 255), -1)
-    #     cv2.circle(img, dest, 12, (0, 0, 255), 2)
-
     for rid, robot_marker in robot_markers.items():
         robot = robots[rid]
         robot_x, robot_y = (robot_marker[1][0] + robot_marker[1][1] + robot_marker[1][2] + robot_marker[1][3]) / 4.0
-        robot.robot_grid_point = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
+        robot.robot_grid_point = approximate_point_to_grid(*RESOLUTION, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
         robot_corners[rid] = robot_marker[1]  # corners are needed for setMouseCallBack
 
         if robot.active:

@@ -193,33 +193,6 @@ def path_is_complex(img, cell_size, markers, A, B):
     return False
 
 
-def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix):
-
-    sure = False
-    while not sure:
-
-        ret, img = video.read()
-        img = cv2.warpPerspective(img, perspective_matrix, RESOLUTION)
-
-        corners, ids, rejected = detector.detectMarkers(img)
-
-        img_markers, _ = aruco_display_all(corners, ids, img)
-        draw_grid(img_markers)
-
-        cv2.imshow("markers", img_markers)
-
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-
-            while True:
-                key = cv2.waitKey(1000) & 0xFF
-                if key == ord('q'):
-                    sure = True
-                break
-
-    return corners, ids, RESOLUTION
-
-
 def draw_grid(img):
     img_height, img_width, _ = img.shape
     unit_y, unit_x = img_height / GRID_HEIGHT, img_width / GRID_WIDTH
