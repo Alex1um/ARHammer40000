@@ -174,8 +174,18 @@ def make_frozen_lake(corners: tuple, ids, robot_id, board_width, board_height, i
     return frozen_lake
 
 
-def path_is_complex():
-    return True
+def path_is_complex(cell_size, markers, A, B):
+    v1 = (B[0]-A[0], B[1]-A[1])
+    for marker in markers:
+        r = 2e9
+        corners = marker[1]
+        for corner in corners:
+            v2 = (corner[0]-A[0], corner[1]-A[1])
+            v21 = v1 * (np.dot(v1, v2)/np.dot(v1,v1))
+            r = min(r, np.linalg.norm(v2 - v21))
+        if r <= (cell_size/2):
+            return True
+    return False
 
 
 def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix):
