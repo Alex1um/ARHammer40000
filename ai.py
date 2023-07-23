@@ -160,6 +160,7 @@ def approximate_point_to_grid(img_w, img_h, board_w, board_h, x_click, y_click):
 
 def make_frozen_lake(corners: tuple, ids, robot_id, board_width, board_height, img_width, img_height):
     frozen_lake = np.full((board_height, board_width), 'F')
+    obstacles_corners = []
     if corners and ids.size > 0:
         for (corner, num) in zip(corners, ids):
             for point in corner[0]:
@@ -168,18 +169,18 @@ def make_frozen_lake(corners: tuple, ids, robot_id, board_width, board_height, i
                 x0, y0 = point
                 i, j = approximate_point_to_grid(img_width, img_height, board_width, board_height, x0, y0)
                 frozen_lake[i][j] = 'H'
+                obstacles_corners.append(corner)
 
     # frozen_lake[0, 0] = 'S'
     # frozen_lake[grid_height - 1, grid_width - 1] = 'G'
-    return frozen_lake
+    return frozen_lake, obstacles_corners
 
 
 def path_is_complex(cell_size, markers, A, B):
-    v1 = (B[0]-A[0], B[1]-A[1])
+    v1 = np.array([B[0]-A[0], B[1]-A[1]])
     for marker in markers:
         r = 2e9
-        corners = marker[1]
-        for corner in corners:
+        for corner in marker:
             v2 = (corner[0]-A[0], corner[1]-A[1])
             v21 = v1 * (np.dot(v1, v2)/np.dot(v1,v1))
             r = min(r, np.linalg.norm(v2 - v21))
