@@ -4,6 +4,12 @@ ROBOT_ADDRESS = "10.0.0.155"
 # ROBOT_ADDRESS = "10.0.0.144"
 RESOLUTION = (640, 480)
 
+MS = 115  # moving speed
+TS = 130  # turning speed
+SEA = 30  # small enough angle, when stop aiming
+BEA = 45  # big enough angle, when start reaiming
+
+
 GRID_WIDTH = 6
 GRID_HEIGHT = 6
 INITIAL_ID = 8

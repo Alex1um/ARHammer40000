@@ -180,12 +180,6 @@ aimed = False
 moving = False
 is_way_found = False
 
-ms = 125  # moving speed
-ts = 150  # turning speed
-sea = 30  # small enough angle, when stop aiming
-bea = 45  # big enough angle, when start reaiming
-point_changed = True
-
 point: tuple[int, int] | None = None
 robot_grid_point: tuple[int, int] | None = None
 next_grid_point = None
@@ -270,24 +264,24 @@ while video.isOpened():
                 # cv2.line(img, center, point, (0, 255, 0), 2)
                 # cv2.putText(img, str(round(angle, 2)),(center[0], center[1] + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-                if not aimed and not moving and angle >= sea:
+                if not aimed and not moving and angle >= SEA:
                     moving = True
-                    robot.set_speed(ts)
+                    robot.set_speed(TS)
                     robot.turn_right()
 
-                if not aimed and not moving and angle <= sea:
+                if not aimed and not moving and angle <= SEA:
                     moving = True
-                    robot.set_speed(ts)
+                    robot.set_speed(TS)
                     robot.turn_left()
 
-                if not aimed and moving and (angle > -sea and angle < sea):
+                if not aimed and moving and (angle > -SEA and angle < SEA):
                     robot.stop()
                     aimed = True
                     moving = False
 
                 if aimed and not moving and not mpl.path.Path(corners).contains_point(point):
                     moving = True
-                    robot.set_speed(ms)
+                    robot.set_speed(MS)
                     robot.go_forward()
 
                 if mpl.path.Path(corners).contains_point(point):
@@ -295,7 +289,7 @@ while video.isOpened():
                     aimed = False
                     moving = False
 
-                if aimed and moving and (angle <= -bea or angle >= bea):
+                if aimed and moving and (angle <= -BEA or angle >= BEA):
                     robot.stop()
                     aimed = False
                     moving = False
