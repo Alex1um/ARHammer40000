@@ -185,7 +185,6 @@ M = get_perspective_matrix(video, arucoDetector, corners_ids)
 # %%
 corners, ids, shape = find_aruco_markers(video, arucoDetector, M)
 # %%
-frozen_lake, obstacles_corners = make_frozen_lake(corners, ids, robots, GRID_WIDTH, GRID_HEIGHT, *shape)
 
 # %%
 while video.isOpened():
@@ -222,13 +221,16 @@ while video.isOpened():
         robot_x, robot_y = (robot_marker[1][0] + robot_marker[1][1] + robot_marker[1][2] + robot_marker[1][3]) / 4.0
         robot.robot_grid_point = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
         robot_corners[rid] = robot_marker[1]  # corners are needed for setMouseCallBack
+        print("1")
 
         if robot.active:
 
             img = aruco_display(robot_marker, img)  # show frames
+            print("2")
 
             if robot.point:
                 if not robot.is_way_found:
+                    frozen_lake, obstacles_corners = make_frozen_lake(corners, ids, rid, GRID_WIDTH, GRID_HEIGHT, *shape)
                     if path_is_complex(RESOLUTION[0]/GRID_WIDTH, obstacles_corners, (robot_x, robot_y), robot.point):
                         frozen_part = frozen_lake.copy()
                         frozen_part[robot.robot_grid_point[0], robot.robot_grid_point[1]] = 'S'
@@ -263,6 +265,7 @@ while video.isOpened():
                     robot.next_img_point = grid_point_to_image_point(robot.next_grid_point)
 
                 center, angle = robot_deviation(robot_marker, robot.next_img_point)
+                print("3")
 
                 # cv2.line(img, center, point, (0, 255, 0), 2)
                 # cv2.putText(img, str(round(angle, 2)),(center[0], center[1] + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
