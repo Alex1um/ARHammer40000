@@ -115,16 +115,18 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
 # %%
 def clickEvents(event, x, y, flags, param):
     robots_corners, robots = param
+    selected = False
     for rid, robot in robots.items():
         if event == cv2.EVENT_LBUTTONDOWN:
             if mpl.path.Path(robots_corners[rid]).contains_point((x, y)):
                 robot.active = True
                 robot.robot.stop()
                 robot.robot.led_on()
-            else:
-                robot.active = False
-                robot.robot.stop()
-                robot.robot.led_off()
+                selected = True
+            # else:
+            #     robot.active = False
+            #     robot.robot.stop()
+            #     robot.robot.led_off()
         else:
             if robot.active and event == cv2.EVENT_RBUTTONDOWN:
                 robot.robot.stop()
@@ -132,7 +134,11 @@ def clickEvents(event, x, y, flags, param):
                 if robot.point != new_point and robot.robot_grid_point != new_point:
                     robot.point = new_point
                     robot.is_way_found = False
-
+    if event == cv2.EVENT_LBUTTONDOWN and not selected:
+        for robot in robots.values():
+            robot.active = False
+            robot.robot.stop()
+            robot.robot.led_off()
 
 # %% md
 # Find robot's marker among all
@@ -175,7 +181,8 @@ arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
 corners_ids = [1, 2, 3, 4]
 
 robots: dict[int, Robots.PlayableRobot] = Robots({
-    5: Robot(ROBOT_ADDRESS)
+    5: Robot(ROBOT_ADDRESS),
+    11: Robot(ROBOT_ADDRESS_2)
 })
 
 # %%
@@ -221,12 +228,10 @@ while video.isOpened():
         robot_x, robot_y = (robot_marker[1][0] + robot_marker[1][1] + robot_marker[1][2] + robot_marker[1][3]) / 4.0
         robot.robot_grid_point = approximate_point_to_grid(*shape, GRID_WIDTH, GRID_HEIGHT, robot_x, robot_y)
         robot_corners[rid] = robot_marker[1]  # corners are needed for setMouseCallBack
-        print("1")
 
         if robot.active:
 
             img = aruco_display(robot_marker, img)  # show frames
-            print("2")
 
             if robot.point:
                 if not robot.is_way_found:
@@ -265,7 +270,6 @@ while video.isOpened():
                     robot.next_img_point = grid_point_to_image_point(robot.next_grid_point)
 
                 center, angle = robot_deviation(robot_marker, robot.next_img_point)
-                print("3")
 
                 # cv2.line(img, center, point, (0, 255, 0), 2)
                 # cv2.putText(img, str(round(angle, 2)),(center[0], center[1] + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
@@ -301,10 +305,10 @@ while video.isOpened():
                     robot.moving = False
 
                 if not robot.aimed and not robot.moving and robot.next_grid_point == robot.robot_grid_point:
-                    robot.next_grid_point = None
-                    robot.next_img_point = None
                     if robot.robot_grid_point == robot.point:
                         robot.point = None
+                    robot.next_grid_point = None
+                    robot.next_img_point = None
 
         else:
             robot.robot.stop()

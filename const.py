@@ -1,11 +1,11 @@
 VIDEO_CAPTURE_DEVICE = 2
 # VIDEO_CAPTURE_DEVICE = "http://localhost:8081/"
 ROBOT_ADDRESS = "10.0.0.155"
-# ROBOT_ADDRESS = "10.0.0.144"
+ROBOT_ADDRESS_2 = "10.0.0.144"
 RESOLUTION = (640, 480)
 
 MS = 115  # moving speed
-TS = 130  # turning speed
+TS = 150  # turning speed
 SEA = 30  # small enough angle, when stop aiming
 BEA = 45  # big enough angle, when start reaiming
 
