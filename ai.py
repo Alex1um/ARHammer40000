@@ -160,25 +160,22 @@ def approximate_point_to_grid(img_w, img_h, board_w, board_h, x_click, y_click):
 
 def make_frozen_lake(corners, ids, robot_id, board_width, board_height, img_width, img_height):
     frozen_lake = np.full((board_height, board_width), 'F')
-    for (corner, num) in zip(corners, ids):
-        for point in corner[0]:
-            if num[0] == robot_id:
-                continue
-            x0, y0 = point
-            i, j = approximate_point_to_grid(img_width, img_height, board_width, board_height, x0, y0)
-            frozen_lake[i][j] = 'H'
-        # for d1 in range(0, 2):
-        #     for d2 in range(0, 2):
-        #         frozen_lake[i + d1][j + d2] = 'H'
+    if corners and ids:
+        for (corner, num) in zip(corners, ids):
+            for point in corner[0]:
+                if num[0] == robot_id:
+                    continue
+                x0, y0 = point
+                i, j = approximate_point_to_grid(img_width, img_height, board_width, board_height, x0, y0)
+                frozen_lake[i][j] = 'H'
 
     # frozen_lake[0, 0] = 'S'
     # frozen_lake[grid_height - 1, grid_width - 1] = 'G'
     return frozen_lake
 
 
-def path_is_complex(A, B, markers):
-    # TODO
-    pass
+def path_is_complex():
+    return True
 
 
 def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix):
@@ -215,6 +212,7 @@ def draw_grid(img):
         for j in range(GRID_WIDTH + 1):
             cv2.circle(img, (round(unit_x * j), round(unit_y * i)), 4, (0, 0, 255), 10)
     return img
+
 
 def grid_point_to_image_point(grid_point: tuple[int, int]):
     unit_x, unit_y = RESOLUTION[0] / GRID_WIDTH, RESOLUTION[1] / GRID_HEIGHT

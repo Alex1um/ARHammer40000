@@ -183,6 +183,7 @@ is_way_found = False
 point: tuple[int, int] | None = None
 robot_grid_point: tuple[int, int] | None = None
 next_grid_point = None
+next_img_point = None
 # %%
 video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
 M = get_perspective_matrix(video, arucoDetector, corners_ids)
@@ -210,10 +211,10 @@ while video.isOpened():
     robot_marker = find_robot(markers, robot_id)
 
     ### START OF INTERFACE CONTROL SECTION
-    if next_grid_point:
+    if next_img_point:
         # show target in aim-like style
 
-        next_img_point = grid_point_to_image_point(next_grid_point)
+        # next_img_point = grid_point_to_image_point(next_grid_point)
         cv2.circle(img, next_img_point, 3, (0, 255, 0), -1)
         cv2.circle(img, next_img_point, 12, (0, 255, 0), 2)
         dest = grid_point_to_image_point(point)
@@ -231,21 +232,24 @@ while video.isOpened():
 
             if point:
                 if not is_way_found:
+                    if path_is_complex():
+                        frozen_part = frozen_lake.copy()
+                        frozen_part[robot_grid_point[0], robot_grid_point[1]] = 'S'
+                        frozen_part[point[0], point[1]] = 'G'
+                        env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
 
-                    frozen_part = frozen_lake.copy()
-                    frozen_part[robot_grid_point[0], robot_grid_point[1]] = 'S'
-                    frozen_part[point[0], point[1]] = 'G'
-                    env = gym.make('FrozenLake-v1', desc=frozen_part, is_slippery=False)
+                        state_space = env.observation_space.n
+                        print("There are ", state_space, " possible states")
 
-                    state_space = env.observation_space.n
-                    print("There are ", state_space, " possible states")
-
-                    action_space = env.action_space.n
-                    print("There are ", action_space, " possible actions")
-                    Qtable_frozenlake = get_policy(state_space, action_space, env)
-                    state, info = env.reset()
-                    next_grid_point = None
-                    is_way_found = True
+                        action_space = env.action_space.n
+                        print("There are ", action_space, " possible actions")
+                        Qtable_frozenlake = get_policy(state_space, action_space, env)
+                        state, info = env.reset()
+                        next_grid_point = None
+                        is_way_found = True
+                    else:
+                        next_grid_point = point
+                        is_way_found = True
 
                 if not next_grid_point:
                     while next_grid_point == robot_grid_point or next_grid_point is None:
@@ -254,10 +258,12 @@ while video.isOpened():
                         next_grid_point, reward, terminated, truncated, info = env.step(action)
                         state = next_grid_point
                         next_grid_point = (next_grid_point // GRID_HEIGHT, next_grid_point % GRID_HEIGHT)
-                    next_img_point = grid_point_to_image_point(next_grid_point)
                     robot.stop()
                     aimed = False
                     moving = False
+
+                if not next_img_point:
+                    next_img_point = grid_point_to_image_point(next_grid_point)
 
                 center, angle = robot_deviation(robot_marker, next_img_point)
 
@@ -296,6 +302,7 @@ while video.isOpened():
 
                 if not aimed and not moving and next_grid_point == robot_grid_point:
                     next_grid_point = None
+                    next_img_point = None
                     if robot_grid_point == point:
                         point = None
 
