@@ -1,5 +1,5 @@
 import cv2
-from RobotAPI import Robot
+from playable_robot import Robots, Robot
 
 import numpy as np
 import matplotlib as mpl
@@ -171,9 +171,10 @@ arucoParams = cv2.aruco.DetectorParameters()
 arucoDetector = cv2.aruco.ArucoDetector(arucoDict, arucoParams)
 
 corners_ids = [1, 2, 3, 4]
-robot_id = 5
 
-robot = Robot(ROBOT_ADDRESS)
+robots = Robots({
+    5: Robot(ROBOT_ADDRESS)
+})
 
 active = False
 aimed = False
@@ -196,7 +197,7 @@ M = get_perspective_matrix(video, arucoDetector, corners_ids)
 # %%
 corners, ids, shape = find_aruco_markers(video, arucoDetector, M)
 # %%
-frozen_lake = make_frozen_lake(corners, ids, robot_id, GRID_WIDTH, GRID_HEIGHT, *shape)
+frozen_lake = make_frozen_lake(corners, ids, robots, GRID_WIDTH, GRID_HEIGHT, *shape)
 
 # %%
 while video.isOpened():

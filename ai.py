@@ -4,6 +4,7 @@ import math
 import random
 from const import *
 import matplotlib as mpl
+from playable_robot import Robots
 
 
 def aruco_display_all(corners, ids, image):
@@ -158,12 +159,12 @@ def approximate_point_to_grid(img_w, img_h, board_w, board_h, x_click, y_click):
     return int(x_click / img_w * board_w), int(y_click / img_h * board_h)
 
 
-def make_frozen_lake(corners, ids, robot_id, board_width, board_height, img_width, img_height):
+def make_frozen_lake(corners, ids, robots: Robots, board_width, board_height, img_width, img_height):
     frozen_lake = np.full((board_height, board_width), 'F')
     for (corner, num) in zip(corners, ids):
         for point in corner[0]:
-            if num[0] == robot_id:
-                continue
+            # if num[0] in robots: # may be robots are not obstacles
+            #     continue
             x0, y0 = point
             i, j = approximate_point_to_grid(img_width, img_height, board_width, board_height, x0, y0)
             frozen_lake[i][j] = 'H'
