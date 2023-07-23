@@ -89,9 +89,10 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
         cv2.imshow('video', img)
 
         # break cycle only if all 4 corner markers are detected
-        key = cv2.waitKey(100) & 0xFF
-        if key == 13 and all([marker_id in ids for marker_id in corners_ids]):
-            break
+        if all(marker_id in ids for marker_id in corners_ids):
+            key = cv2.waitKey(3000) & 0xFF
+            if key == 13:  # enter
+                break
 
     # video.release()
     cv2.destroyAllWindows()

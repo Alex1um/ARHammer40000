@@ -158,9 +158,9 @@ def approximate_point_to_grid(img_w, img_h, board_w, board_h, x_click, y_click):
     return int(x_click / img_w * board_w), int(y_click / img_h * board_h)
 
 
-def make_frozen_lake(corners, ids, robot_id, board_width, board_height, img_width, img_height):
+def make_frozen_lake(corners: tuple, ids, robot_id, board_width, board_height, img_width, img_height):
     frozen_lake = np.full((board_height, board_width), 'F')
-    if corners and ids:
+    if corners and ids.size > 0:
         for (corner, num) in zip(corners, ids):
             for point in corner[0]:
                 if num[0] == robot_id:
