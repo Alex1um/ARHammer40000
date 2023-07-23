@@ -76,10 +76,12 @@ def aruco_display(marker, image):
 
 def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.ArucoDetector, corners_ids):
 
+    if not video.isOpened():
+        raise Exception("video device is not opened")
+
     while video.isOpened():
 
         ret, img = video.read()
-        cv2.imshow('video', img)
 
         corners, ids, rejected = arucoDetector.detectMarkers(img)
         markers = aruco_detect(corners, ids, rejected, img)
@@ -87,7 +89,19 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
         for marker in markers:
             img = aruco_display(marker, img)
 
-        cv2.imshow('video', img)
+        cv2.imshow('perspective markers', img)
+
+        # only markers whose ids in corners_ids will be added
+        ids = [marker[0] for marker in markers]
+        corner_markers = [markers[ids.index(marker_id)] for marker_id in corners_ids]
+
+        src = np.float32([corner_markers[i][1][i] for i in range(4)])
+        dst = np.float32([[0, 0], [0, RESOLUTION[1]], [RESOLUTION[0], RESOLUTION[1]], [RESOLUTION[0], 0]])
+
+        M = cv2.getPerspectiveTransform(src, dst)
+
+        perspective = cv2.warpPerspective(img, M, RESOLUTION)
+        cv2.imshow('perspective preview', perspective)
 
         # break cycle only if all 4 corner markers are detected
         if all(marker_id in ids for marker_id in corners_ids):
@@ -97,15 +111,6 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
 
     # video.release()
     cv2.destroyAllWindows()
-
-    # only markers whose ids in corners_ids will be added
-    ids = [marker[0] for marker in markers]
-    corner_markers = [markers[ids.index(marker_id)] for marker_id in corners_ids]
-
-    src = np.float32([corner_markers[i][1][i] for i in range(4)])
-    dst = np.float32([[0, 0], [0, RESOLUTION[1]], [RESOLUTION[0], RESOLUTION[1]], [RESOLUTION[0], 0]])
-
-    M = cv2.getPerspectiveTransform(src, dst)
 
     return M
 
@@ -209,9 +214,11 @@ robots: dict[int, Robots.PlayableRobot] = Robots({
 
 # %%
 video = cv2.VideoCapture(VIDEO_CAPTURE_DEVICE)
+print("finding perspective matrix...\npress enter when ready")
 M = get_perspective_matrix(video, arucoDetector, corners_ids)
 
 # %%
+print("starting game...\npress esc to quit")
 while video.isOpened():
 
     ret, img = video.read()
@@ -357,7 +364,7 @@ while video.isOpened():
     cv2.imshow('video', img)
 
     key = cv2.waitKey(1) & 0xFF
-    if key == 27:
+    if key == 27:  # esc
         for robot in robots.values():
             robot.robot.stop()
             robot.robot.led_off()
