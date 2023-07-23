@@ -182,7 +182,7 @@ corners_ids = [1, 2, 3, 4]
 
 robots: dict[int, Robots.PlayableRobot] = Robots({
     5: Robot(ROBOT_ADDRESS),
-    11: Robot(ROBOT_ADDRESS_2)
+    6: Robot(ROBOT_ADDRESS_2)
 })
 
 # %%
@@ -236,7 +236,7 @@ while video.isOpened():
             if robot.point:
                 if not robot.is_way_found:
                     frozen_lake, obstacles_corners = make_frozen_lake(corners, ids, rid, GRID_WIDTH, GRID_HEIGHT, *shape)
-                    if path_is_complex(RESOLUTION[0]/GRID_WIDTH, obstacles_corners, (robot_x, robot_y), robot.point):
+                    if path_is_complex(img, RESOLUTION[0]/GRID_WIDTH, obstacles_corners, (robot_x, robot_y), grid_point_to_image_point(robot.point)):
                         frozen_part = frozen_lake.copy()
                         frozen_part[robot.robot_grid_point[0], robot.robot_grid_point[1]] = 'S'
                         frozen_part[robot.point[0], robot.point[1]] = 'G'
