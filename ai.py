@@ -183,9 +183,9 @@ def path_is_complex(cell_size, markers, A, B):
         r = 2e9
         for corner in marker:
             v2 = (corner[0]-A[0], corner[1]-A[1])
-            v21 = v1 * (np.dot(v1, v2)/np.dot(v1,v1))
+            v21 = v1 * (np.dot(v1, v2) / np.dot(v1,v1))
             r = min(r, np.linalg.norm(v2 - v21))
-        if r <= (cell_size/2):
+        if r <= (cell_size):
             return True
     return False
 

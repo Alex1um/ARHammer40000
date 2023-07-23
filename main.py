@@ -51,7 +51,7 @@ def aruco_detect(corners, ids, rejected, image):
             corners = np.float32([corners[0], corners[3], corners[2], corners[1]])  # change order to counter-clockwise
             detected.append((int(markerID), corners))
 
-    return sorted(detected)
+    return detected
 
 
 # %%
@@ -79,6 +79,7 @@ def get_perspective_matrix(video: cv2.VideoCapture, arucoDetector: cv2.aruco.Aru
     while video.isOpened():
 
         ret, img = video.read()
+        cv2.imshow('video', img)
 
         corners, ids, rejected = arucoDetector.detectMarkers(img)
         markers = aruco_detect(corners, ids, rejected, img)
@@ -281,12 +282,12 @@ while video.isOpened():
                     robot.aimed = True
                     robot.moving = False
 
-                if robot.aimed and not robot.moving and not mpl.path.Path(corners).contains_point(robot.point):
+                if robot.aimed and not robot.moving and not mpl.path.Path(robot_corners[rid]).contains_point(robot.point):
                     robot.moving = True
                     robot.robot.set_speed(MS)
                     robot.robot.go_forward()
 
-                if mpl.path.Path(corners).contains_point(robot.point):
+                if mpl.path.Path(robot_corners[rid]).contains_point(robot.point):
                     robot.robot.stop()
                     robot.aimed = False
                     robot.moving = False
