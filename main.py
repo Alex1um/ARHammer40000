@@ -149,11 +149,15 @@ def clickEvents(event, x, y, flags, param):
                 robot.aimed = False
                 robot.moving = False
                 new_point = approximate_point_to_grid(*RESOLUTION, GRID_WIDTH, GRID_HEIGHT, x, y)
-                if robot.end_grid_point != new_point:
+                if robot.end_grid_point != new_point and robot.robot_grid_point != new_point:
                     robot.end_grid_point = new_point
                     robot.is_way_found = False
+                    robot.next_grid_point = None
+                    robot.next_img_point = None
                 if robot.robot_grid_point == new_point:
                     robot.end_grid_point = new_point
+                    robot.next_grid_point = None
+                    robot.next_img_point = None
 
 # %% md
 # Find robot's marker among all
@@ -199,8 +203,8 @@ selection_start_point = None
 selection_current_point = None
 
 robots: dict[int, Robots.PlayableRobot] = Robots({
-    5: Robot(ROBOT_ADDRESS),
-    6: Robot(ROBOT_ADDRESS_2)
+    5: Robot(ROBOT_ADDRESS, 50),
+    6: Robot(ROBOT_ADDRESS_2, 50)
 })
 
 # %%
@@ -272,6 +276,7 @@ while video.isOpened():
                     else:
                         robot.next_grid_point = robot.end_grid_point
                         robot.is_way_found = True
+                    continue
 
                 if not robot.next_grid_point:
                     while robot.next_grid_point == robot.robot_grid_point or robot.next_grid_point is None:
@@ -286,6 +291,14 @@ while video.isOpened():
 
                 if not robot.next_img_point:
                     robot.next_img_point = grid_point_to_image_point(robot.next_grid_point)
+
+                # copy. Not working :(
+                # for arid, another in robots.items():
+                #     if arid != rid and another.robot_grid_point == robot.next_grid_point and robot.next_grid_point:
+                #         robot.robot.stop()
+                #         robot.aimed = False
+                #         robot.moving = False
+                #         continue
 
                 center, angle = robot_deviation(robot_marker, robot.next_img_point)
 
@@ -321,6 +334,13 @@ while video.isOpened():
                     robot.robot.stop()
                     robot.aimed = False
                     robot.moving = False
+
+                for arid, another in robots.items():
+                    if arid != rid and another.robot_grid_point == robot.next_grid_point and robot.next_grid_point:
+                        robot.robot.stop()
+                        robot.aimed = False
+                        robot.moving = False
+                        continue
 
                 if robot.next_grid_point == robot.robot_grid_point:
                     robot.robot.stop()
