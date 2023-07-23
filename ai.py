@@ -161,25 +161,32 @@ def approximate_point_to_grid(img_w, img_h, board_w, board_h, x_click, y_click):
 
 def make_frozen_lake(corners, ids, robots: Robots, board_width, board_height, img_width, img_height):
     frozen_lake = np.full((board_height, board_width), 'F')
-    for (corner, num) in zip(corners, ids):
-        for point in corner[0]:
-            # if num[0] in robots: # may be robots are not obstacles
-            #     continue
-            x0, y0 = point
-            i, j = approximate_point_to_grid(img_width, img_height, board_width, board_height, x0, y0)
-            frozen_lake[i][j] = 'H'
-        # for d1 in range(0, 2):
-        #     for d2 in range(0, 2):
-        #         frozen_lake[i + d1][j + d2] = 'H'
+    if corners and ids.size > 0:
+        for (corner, num) in zip(corners, ids):
+            for point in corner[0]:
+                if num[0] in robots:
+                    continue
+                x0, y0 = point
+                i, j = approximate_point_to_grid(img_width, img_height, board_width, board_height, x0, y0)
+                frozen_lake[i][j] = 'H'
 
     # frozen_lake[0, 0] = 'S'
     # frozen_lake[grid_height - 1, grid_width - 1] = 'G'
     return frozen_lake
 
 
-def path_is_complex(A, B, markers):
-    # TODO
-    pass
+def path_is_complex(cell_size, markers, A, B):
+    v1 = (B[0]-A[0], B[1]-A[1])
+    for marker in markers:
+        r = 2e9
+        corners = marker[1]
+        for corner in corners:
+            v2 = (corner[0]-A[0], corner[1]-A[1])
+            v21 = v1 * (np.dot(v1, v2)/np.dot(v1,v1))
+            r = min(r, np.linalg.norm(v2 - v21))
+        if r <= (cell_size/2):
+            return True
+    return False
 
 
 def find_aruco_markers(video: cv2.VideoCapture, detector: cv2.aruco.ArucoDetector, perspective_matrix):
@@ -216,6 +223,7 @@ def draw_grid(img):
         for j in range(GRID_WIDTH + 1):
             cv2.circle(img, (round(unit_x * j), round(unit_y * i)), 4, (0, 0, 255), 10)
     return img
+
 
 def grid_point_to_image_point(grid_point: tuple[int, int]):
     unit_x, unit_y = RESOLUTION[0] / GRID_WIDTH, RESOLUTION[1] / GRID_HEIGHT
